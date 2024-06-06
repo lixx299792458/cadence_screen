@@ -1,22 +1,12 @@
-/**
- * A BLE client example that is rich in capabilities.
- * There is a lot new capabilities implemented.
- * author unknown
- * updated by chegewara
- */
-
 #include "BLEDevice.h"
 //#include "BLEScan.h"
 #include "Arduino.h"
 
-// #define DEBUG
-
+#define DEBUG
 // The remote service we wish to connect to.
 static BLEUUID serviceUUID(BLEUUID((uint16_t)0x1816));
 // The characteristic of the remote service we are interested in.
 static BLEUUID    charUUID(BLEUUID((uint16_t)0x2A5B));
-
-
 // static BLEUUID service_cadence_UUID(BLEUUID((uint16_t)0x1816));
 // static BLEUUID char_cadence_UUID(BLEUUID((uint16_t)0x2A5B));
 
@@ -26,6 +16,7 @@ static boolean doScan = false;
 static BLERemoteCharacteristic* pRemoteCharacteristic;
 static BLEAdvertisedDevice* myDevice;
 
+//定义全局变量
 uint16_t revlution_counts;
 uint16_t last_revlution_counts;
 uint16_t revlutions_timestamp;
@@ -37,33 +28,30 @@ static void notifyCallback(
 	uint8_t* pData,
 	size_t length,
 	bool isNotify) {
-
-		// Serial.print("Notify callback for characteristic ");
-		// Serial.print(pBLERemoteCharacteristic->getUUID().toString().c_str());
-		// Serial.print(" of data length ");
-		// Serial.println(length);
-		// Serial.print("data: ");
-		// Serial.write(pData, length);
-		// Serial.println();
-		//踏频计的信息很奇葩，5个数，头一个没用，第二三个代表圈数，第四五个代表时间
-		revlution_counts = pData[2]*256+pData[1];
-		revlutions_timestamp = pData[4]*256+pData[3];
-		//通过计算其差来计算踏频
-		if(revlution_counts != last_revlution_counts){
-			uint16_t revlution_delta = revlution_counts - last_revlution_counts;
-			uint16_t revlutions_timesdelta = revlutions_timestamp - last_revlutions_timestamp;
-			cadence = int(60.0*revlution_delta/(revlutions_timesdelta/1000.0));
-			last_revlution_counts = revlution_counts;
-			last_revlutions_timestamp = revlutions_timestamp;
-			Serial.print(cadence);
-			Serial.println("rpm");
-		}
-		#ifdef DEBUG
-		Serial.println(revlution_counts);
-		Serial.println(revlutions_timestamp);
-		#endif
-
-
+	// Serial.print("Notify callback for characteristic ");
+	// Serial.print(pBLERemoteCharacteristic->getUUID().toString().c_str());
+	// Serial.print(" of data length ");
+	// Serial.println(length);
+	// Serial.print("data: ");
+	// Serial.write(pData, length);
+	// Serial.println();
+	//踏频计的信息很奇葩，5个数，头一个没用，第二三个代表圈数，第四五个代表时间
+	revlution_counts = pData[2]*256+pData[1];
+	revlutions_timestamp = pData[4]*256+pData[3];
+	//通过计算其差来计算踏频
+	if(revlution_counts != last_revlution_counts){
+		uint16_t revlution_delta = revlution_counts - last_revlution_counts;
+		uint16_t revlutions_timesdelta = revlutions_timestamp - last_revlutions_timestamp;
+		cadence = int(60.0*revlution_delta/(revlutions_timesdelta/1000.0));
+		last_revlution_counts = revlution_counts;
+		last_revlutions_timestamp = revlutions_timestamp;
+		Serial.print(cadence);
+		Serial.println("rpm");
+	}
+	#ifdef DEBUG
+	Serial.print(revlution_counts);Serial.print("s");
+	Serial.print(revlutions_timestamp);Serial.println("ms");
+	#endif
 }
 
 class MyClientCallback : public BLEClientCallbacks {
@@ -150,19 +138,15 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
     Serial.print("BLE Advertised Device found: ");
     Serial.println(advertisedDevice.toString().c_str());
 	#endif
-
     // We have found a device, let us now see if it contains the service we are looking for.
     if (advertisedDevice.haveServiceUUID() && advertisedDevice.isAdvertisingService(serviceUUID)) {
-
-      BLEDevice::getScan()->stop();
-      myDevice = new BLEAdvertisedDevice(advertisedDevice);
-      doConnect = true;
-      doScan = true;
-
+		BLEDevice::getScan()->stop();
+		myDevice = new BLEAdvertisedDevice(advertisedDevice);
+		doConnect = true;
+		doScan = true;
     } // Found our server
   } // onResult
 }; // MyAdvertisedDeviceCallbacks
-
 
 void setup() {
 	Serial.begin(115200);
@@ -171,15 +155,15 @@ void setup() {
 	#endif
 	BLEDevice::init("");
 
-  // Retrieve a Scanner and set the callback we want to use to be informed when we
-  // have detected a new device.  Specify that we want active scanning and start the
-  // scan to run for 5 seconds.
-  BLEScan* pBLEScan = BLEDevice::getScan();
-  pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
-  pBLEScan->setInterval(1349);
-  pBLEScan->setWindow(449);
-  pBLEScan->setActiveScan(true);
-  pBLEScan->start(5, false);
+	// Retrieve a Scanner and set the callback we want to use to be informed when we
+	// have detected a new device.  Specify that we want active scanning and start the
+	// scan to run for 5 seconds.
+	BLEScan* pBLEScan = BLEDevice::getScan();
+	pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
+	pBLEScan->setInterval(1349);
+	pBLEScan->setWindow(449);
+	pBLEScan->setActiveScan(true);
+	pBLEScan->start(5, false);
 } // End of setup.
 
 
