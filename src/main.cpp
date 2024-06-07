@@ -25,7 +25,8 @@ uint16_t revlution_counts;
 uint16_t last_revlution_counts;
 uint16_t revlutions_timestamp;
 uint16_t last_revlutions_timestamp;
-uint16_t cadence;
+//此处更改为999，否则开机会闪现00
+uint16_t cadence = 999;
 char cadence_string[4] = "---";
 unsigned long longtime_noupdate_timestamp=0;
 
