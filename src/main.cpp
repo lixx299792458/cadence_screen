@@ -1,6 +1,10 @@
 #include "BLEDevice.h"
 //#include "BLEScan.h"
 #include "Arduino.h"
+#include <U8g2lib.h>
+#include <Wire.h>
+
+U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
 #define DEBUG
 // The remote service we wish to connect to.
@@ -22,6 +26,8 @@ uint16_t last_revlution_counts;
 uint16_t revlutions_timestamp;
 uint16_t last_revlutions_timestamp;
 uint16_t cadence;
+char cadence_string[4] = "---";
+unsigned long longtime_noupdate_timestamp=0;
 
 static void notifyCallback(
 	BLERemoteCharacteristic* pBLERemoteCharacteristic,
@@ -42,11 +48,12 @@ static void notifyCallback(
 	if(revlution_counts != last_revlution_counts){
 		uint16_t revlution_delta = revlution_counts - last_revlution_counts;
 		uint16_t revlutions_timesdelta = revlutions_timestamp - last_revlutions_timestamp;
-		cadence = int(60.0*revlution_delta/(revlutions_timesdelta/1000.0));
+		cadence = uint16_t(60.0*revlution_delta/(revlutions_timesdelta/1000.0));
 		last_revlution_counts = revlution_counts;
 		last_revlutions_timestamp = revlutions_timestamp;
 		Serial.print(cadence);
 		Serial.println("rpm");
+		longtime_noupdate_timestamp = millis();
 	}
 	#ifdef DEBUG
 	Serial.print(revlution_counts);Serial.print("s");
@@ -149,6 +156,10 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
 }; // MyAdvertisedDeviceCallbacks
 
 void setup() {
+	Wire.setPins(6, 7);
+	Wire.begin();
+	u8g2.begin();  
+
 	Serial.begin(115200);
 	#ifdef DEBUG
 	Serial.println("Starting Arduino BLE Client application...");
@@ -188,18 +199,61 @@ void loop() {
     if (!connected){
 		BLEDevice::getScan()->start(5);  // this is just example to start scan after disconnect, most likely there is better way to do it in arduino
 	}
-  // If we are connected to a peer BLE Server, update the characteristic each time we are reached
-  // with the current time since boot.
-//   if (connected) {
-//     // String newValue = "Time since boot: " + String(millis()/1000);
-//     // Serial.println("Setting new characteristic value to \"" + newValue + "\"");
-    
-//     // // Set the characteristic's value to be the array of bytes that is actually a string.
-//     // pRemoteCharacteristic->writeValue(newValue.c_str(), newValue.length());
-//   }else if(doScan){
-//     BLEDevice::getScan()->start(5);  // this is just example to start scan after disconnect, most likely there is better way to do it in arduino
-//   }
 
+	//转换成3个数字
+	cadence_string[2] = 0x30 + cadence%10;
+	cadence_string[1] = 0x30 + (cadence/10)%10;
+	cadence_string[0] = 0x30 + (cadence/100)%10;
+	//如果是2位数，就不显示第一位的0
+	if(cadence < 100){
+		cadence_string[0] = 0x20 ;
+	}
+	//踏频是有限的，不可能太大，太大肯定是启停瞬间的bug
+	if(cadence > 200){
+		cadence_string[2] = 0x2D;
+		cadence_string[1] = 0x2D;
+		cadence_string[0] = 0x2D;
+	}	
+	//失去连接用符号显示
+	if(!connected){
+		cadence_string[2] = 0x2D;
+		cadence_string[1] = 0x2D;
+		cadence_string[0] = 0x2D;
+	}
+	//长时间不更新也用符号显示,5S不转一圈，就停止更新
+	if((millis()-longtime_noupdate_timestamp)>5000){
+		cadence_string[2] = 0x2D;
+		cadence_string[1] = 0x2D;
+		cadence_string[0] = 0x2D;
+	}
+
+	u8g2.firstPage();
+	do {
+		u8g2.drawHLine(0,0,128);
+		u8g2.drawHLine(0,63,128);
+		u8g2.drawVLine(0,0,64);
+		u8g2.drawVLine(127,0,64);
+		u8g2.drawHLine(1,1,127);
+		u8g2.drawHLine(0,62,128);
+		u8g2.drawVLine(1,1,64);
+		u8g2.drawVLine(126,1,64);
+		u8g2.drawHLine(2,2,127);
+		u8g2.drawHLine(2,61,128);
+		u8g2.drawVLine(2,2,64);
+		u8g2.drawVLine(125,2,64);
+		//字体不全，无法显示“---”
+		if(0x2D == cadence_string[0]){
+			u8g2.setFont(u8g2_font_fub42_tf);
+			u8g2.drawStr(16,48,cadence_string);
+
+		}
+		else{
+			u8g2.setFont(u8g2_font_7Segments_26x42_mn);
+			u8g2.drawStr(3,53,cadence_string);
+		}
+		u8g2.setFont(u8g2_font_12x6LED_tf);
+		u8g2.drawStr(100,53,"rpm");
+	} while ( u8g2.nextPage() );
 
 } // End of loop
 
@@ -220,4 +274,39 @@ void loop() {
 // 	digitalWrite(LED_PIN, LOW);
 // 	delay(1000);   
 
+// }
+
+//ESP32-C3基础测试OLED
+// #include <Arduino.h>
+// #include <U8g2lib.h>
+// #include <Wire.h>
+
+// #define LED_PIN 8
+
+// U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+
+// void setup(void) {
+// 	//没有这一句，ESP32C3不工作
+// 	Wire.setPins(6, 7);
+// 	Wire.begin();
+// 	// u8g2.setI2CAddress(0x78);
+// 	u8g2.begin();  
+// 	pinMode(LED_PIN,OUTPUT);
+// 	Serial.begin(115200);
+// }
+
+// void loop(void) {
+// 	u8g2.firstPage();
+// 	do {
+// 		u8g2.drawHLine(0,0,10);
+// 		u8g2.drawHLine(0,31,10);
+
+// 		u8g2.setFont(u8g2_font_ncenB10_tr);
+// 		u8g2.drawStr(0,24,"Hello World!");
+// 	} while ( u8g2.nextPage() );
+// 		Serial.println("hello,esp32-c3");
+// 		digitalWrite(LED_PIN, HIGH);
+// 		delay(1000);
+// 		digitalWrite(LED_PIN, LOW);
+// 		delay(1000);  
 // }
