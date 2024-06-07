@@ -160,6 +160,28 @@ void setup() {
 	Wire.begin();
 	u8g2.begin();  
 
+//蓝牙连接是阻塞的，也就是开机屏幕不亮，很慌，挪到这里，先显示点什么。
+	u8g2.firstPage();
+	do {
+		u8g2.drawHLine(0,0,128);
+		u8g2.drawHLine(0,63,128);
+		u8g2.drawVLine(0,0,64);
+		u8g2.drawVLine(127,0,64);
+		u8g2.drawHLine(1,1,127);
+		u8g2.drawHLine(0,62,128);
+		u8g2.drawVLine(1,1,64);
+		u8g2.drawVLine(126,1,64);
+		u8g2.drawHLine(2,2,127);
+		u8g2.drawHLine(2,61,128);
+		u8g2.drawVLine(2,2,64);
+		u8g2.drawVLine(125,2,64);
+		u8g2.setFont(u8g2_font_bytesize_tf);
+		u8g2.drawStr(12,24,"Cadence Meter");
+		u8g2.setFont(u8g2_font_bytesize_tf);
+		u8g2.drawStr(12,48,"Connecting...");
+	} while ( u8g2.nextPage() );
+
+
 	Serial.begin(115200);
 	#ifdef DEBUG
 	Serial.println("Starting Arduino BLE Client application...");
