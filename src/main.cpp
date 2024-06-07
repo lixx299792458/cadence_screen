@@ -6,7 +6,7 @@
 
 U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
-#define DEBUG
+// #define DEBUG
 // The remote service we wish to connect to.
 static BLEUUID serviceUUID(BLEUUID((uint16_t)0x1816));
 // The characteristic of the remote service we are interested in.
