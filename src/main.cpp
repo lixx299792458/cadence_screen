@@ -6,7 +6,7 @@
 
 U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
-// #define DEBUG
+#define DEBUG
 // The remote service we wish to connect to.
 static BLEUUID serviceUUID(BLEUUID((uint16_t)0x1816));
 // The characteristic of the remote service we are interested in.
@@ -232,7 +232,7 @@ void loop() {
 		cadence_string[0] = 0x20 ;
 	}
 	//踏频是有限的，不可能太大，太大肯定是启停瞬间的bug
-	if(cadence > 200){
+	if(cadence > 120){
 		cadence_string[2] = 0x2D;
 		cadence_string[1] = 0x2D;
 		cadence_string[0] = 0x2D;
