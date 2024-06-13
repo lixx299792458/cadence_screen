@@ -6,7 +6,7 @@
 
 U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
-#define DEBUG
+// #define DEBUG
 // The remote service we wish to connect to.
 static BLEUUID serviceUUID(BLEUUID((uint16_t)0x1816));
 // The characteristic of the remote service we are interested in.
@@ -29,6 +29,11 @@ uint16_t last_revlutions_timestamp;
 uint16_t cadence = 999;
 char cadence_string[4] = "---";
 unsigned long longtime_noupdate_timestamp=0;
+//定义电量读取的ADC数据
+uint16_t adc_result = 0;
+uint16_t bat_voltage_x10 = 0;
+uint16_t bat_level = 0;
+char bat_str[2] = "0";
 
 static void notifyCallback(
 	BLERemoteCharacteristic* pBLERemoteCharacteristic,
@@ -203,7 +208,30 @@ void setup() {
 
 // This is the Arduino main loop function.
 void loop() {
-
+	//电量检测功能	
+	adc_result = analogRead(A1);
+	bat_voltage_x10 = uint16_t(adc_result/4096.0F*3.0F*57.0F);
+	#ifdef DEBUG
+	Serial.println(bat_voltage_x10);
+	#endif
+	switch (bat_voltage_x10)
+	{
+		case 30:bat_level = 0; break;
+		case 31:bat_level = 0; break;
+		case 32:bat_level = 0; break;
+		case 33:bat_level = 0; break;
+		case 34:bat_level = 0; break;
+		case 35:bat_level = 0; break;
+		case 36:bat_level = 1; break;
+		case 37:bat_level = 1; break;
+		case 38:bat_level = 2; break;
+		case 39:bat_level = 3; break;
+		case 40:bat_level = 3; break;
+		case 41:bat_level = 4; break;
+		case 42:bat_level = 4; break;
+		default:
+			break;
+	}
   // If the flag "doConnect" is true then we have scanned for and found the desired
   // BLE Server with which we wish to connect.  Now we connect to it.  Once we are 
   // connected we set the connected flag to be true.
@@ -276,7 +304,13 @@ void loop() {
 		}
 		u8g2.setFont(u8g2_font_12x6LED_tf);
 		u8g2.drawStr(100,53,"rpm");
+		u8g2.setFont(u8g2_font_battery24_tr);
+		bat_str[0] = 0x30 + bat_level;
+		u8g2.drawStr(102,30,bat_str);
+
 	} while ( u8g2.nextPage() );
+
+
 
 } // End of loop
 
